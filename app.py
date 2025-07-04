@@ -5,7 +5,7 @@ from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.llms import HuggingFaceEndpoint
+from langchain_community.llms import HuggingFaceHub
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
 
@@ -88,15 +88,17 @@ ANSWER:"""
         )
 
         # Instantiate the HuggingFace LLM Endpoint
-        llm = HuggingFaceEndpoint(
+        llm = HuggingFaceHub(
             repo_id=LLM_MODEL_REPO_ID,
             huggingfacehub_api_token=api_token,
             task="text-generation",
-            max_new_tokens=300,
-            temperature=0.1,
-            top_p=0.9,
-            do_sample=False,
-            repetition_penalty=1.1
+            model_kwargs={
+                "max_new_tokens": 300,
+                "temperature": 0.1,
+                "top_p": 0.9,
+                "do_sample": False,
+                "repetition_penalty": 1.1
+            }
         )
 
         # Retrieve 4 chunks
