@@ -92,13 +92,11 @@ ANSWER:"""
             repo_id=LLM_MODEL_REPO_ID,
             huggingfacehub_api_token=api_token,
             task="text-generation",
-            model_kwargs={
-                "max_new_tokens": 300,
-                "temperature": 0.1,
-                "top_p": 0.9,
-                "do_sample": False,
-                "repetition_penalty": 1.1
-            }
+            max_new_tokens=300,
+            temperature=0.1,
+            top_p=0.9,
+            do_sample=False,
+            repetition_penalty=1.1
         )
 
         # Retrieve 4 chunks
