@@ -1,14 +1,17 @@
 import os
 import logging
 import streamlit as st
+from dotenv import load_dotenv
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.llms import HuggingFaceHub
+from langchain_community.llms import HuggingFaceEndpoint
 from langchain_community.vectorstores import FAISS
 from langchain_community.document_loaders import WebBaseLoader
 
+# --- Load Environment Variables ---
+load_dotenv()
 
 # --- ENV FIXES ---
 os.environ["STREAMLIT_WATCHER_TYPE"] = "watchdog"
@@ -61,12 +64,12 @@ def load_and_index_urls(urls):
 
 
 def setup_qa_chain(_vector_store, api_token):
-    """Sets up the LangChain RetrievalQA chain using HuggingFaceHub LLM."""
+    """Sets up the LangChain RetrievalQA chain using HuggingFaceEndpoint LLM."""
     if not api_token:
-        st.error("Hugging Face API Token not found. Please set the HUGGINGFACEHUB_API_TOKEN.")
+        st.error("Hugging Face API Token not found. Please set the HUGGINGFACEHUB_API_TOKEN in your .env file.")
         return None
     try:
-        logger.info(f"Setting up QA chain with model: {LLM_MODEL_REPO_ID} via HuggingFaceHub")
+        logger.info(f"Setting up QA chain with model: {LLM_MODEL_REPO_ID} via HuggingFaceEndpoint")
 
         # Promt for AI Model
         prompt_template_str = """
@@ -88,17 +91,15 @@ ANSWER:"""
         )
 
         # Instantiate the HuggingFace LLM Endpoint
-        llm = HuggingFaceHub(
+        llm = HuggingFaceEndpoint(
             repo_id=LLM_MODEL_REPO_ID,
             huggingfacehub_api_token=api_token,
             task="text-generation",
-            model_kwargs={
-                "max_new_tokens": 300,
-                "temperature": 0.1,
-                "top_p": 0.9,
-                "do_sample": False,
-                "repetition_penalty": 1.1
-            }
+            max_new_tokens=300,
+            temperature=0.1,
+            top_p=0.9,
+            do_sample=False,
+            repetition_penalty=1.1
         )
 
         # Retrieve 4 chunks
@@ -126,17 +127,12 @@ st.title("💬 Web Content Q&A Tool (HuggingFace)")
 st.caption("Ask questions based on the content of the provided webpages and model will answer based on that.")
 
 # --- Get API Token ---
-hf_api_token = None
-try:
-    hf_api_token = st.secrets.get("HUGGINGFACEHUB_API_TOKEN")
-except (FileNotFoundError, AttributeError):
-    logger.info("Streamlit secrets not found, checking environment variables.")
-    hf_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+hf_api_token = os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
 if not hf_api_token:
     st.warning(
         "Hugging Face API Token not found. "
-        "Please set the `HUGGINGFACEHUB_API_TOKEN` environment variable or add it to Streamlit secrets."
+        "Please set the `HUGGINGFACEHUB_API_TOKEN` in a `.env` file in your project directory."
         "\n\nGet a token here: https://huggingface.co/settings/tokens",
         icon="🔑"
     )
