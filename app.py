@@ -1,18 +1,19 @@
 import os
+import logging
 import streamlit as st
-from langchain_community.document_loaders import WebBaseLoader
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import HuggingFaceHub
 from langchain.chains import RetrievalQA
 from langchain.prompts import PromptTemplate
-import logging
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_community.llms import HuggingFaceEndpoint
+from langchain_community.vectorstores import FAISS
+from langchain_community.document_loaders import WebBaseLoader
 
-# --- ENV FIXES (Keep these) ---
+
+# --- ENV FIXES ---
 os.environ["STREAMLIT_WATCHER_TYPE"] = "watchdog"
 
-# Configure logging
+# --- Logging ---
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -58,7 +59,7 @@ def load_and_index_urls(urls):
         logger.error(f"Ingestion error: {e}", exc_info=True)
         return None
 
-# Updated function to use HuggingFaceHub and a specific prompt
+
 def setup_qa_chain(_vector_store, api_token):
     """Sets up the LangChain RetrievalQA chain using HuggingFaceHub LLM."""
     if not api_token:
@@ -67,7 +68,7 @@ def setup_qa_chain(_vector_store, api_token):
     try:
         logger.info(f"Setting up QA chain with model: {LLM_MODEL_REPO_ID} via HuggingFaceHub")
 
-        # Define the prompt template for grounded Q&A
+        # Promt for AI Model
         prompt_template_str = """
 You are an assistant designed to answer questions based ONLY on the provided context.
 Carefully review the following context.
@@ -86,21 +87,22 @@ ANSWER:"""
             template=prompt_template_str, input_variables=["context", "question"]
         )
 
-        # Instantiate the HuggingFaceHub LLM
-        llm = HuggingFaceHub(
+        # Instantiate the HuggingFace LLM Endpoint
+        llm = HuggingFaceEndpoint(
             repo_id=LLM_MODEL_REPO_ID,
             huggingfacehub_api_token=api_token,
-            task="text-generation", # Correct task for instruct models
+            task="text-generation",
             model_kwargs={
-                "max_new_tokens": 300,   # Limit response length
-                "temperature": 0.1,    # Lower temperature for more factual, less creative response
-                "top_p": 0.9,         # Nucleus sampling
-                "do_sample": False,    # Turn off sampling for more deterministic, context-focused answers
-                "repetition_penalty": 1.1 # Slightly discourage repetition
+                "max_new_tokens": 300,
+                "temperature": 0.1,
+                "top_p": 0.9,
+                "do_sample": False,
+                "repetition_penalty": 1.1
             }
         )
 
-        retriever = _vector_store.as_retriever(search_kwargs={"k": 4}) # Retrieve 4 chunks
+        # Retrieve 4 chunks
+        retriever = _vector_store.as_retriever(search_kwargs={"k": 4})
 
         # Create the RetrievalQA chain with the custom prompt
         qa_chain = RetrievalQA.from_chain_type(
@@ -118,10 +120,10 @@ ANSWER:"""
         logger.error(f"QA Chain Setup Error: {e}", exc_info=True)
         return None
 
-# --- Streamlit UI (Mostly unchanged from previous version) ---
-st.set_page_config(page_title="Web Content Q&A (HF Hub)", layout="wide")
-st.title("💬 Web Content Q&A Tool (using HF Hub)")
-st.caption("Ask questions based *only* on the content of the provided webpages. The model will say 'I don't know' if the answer isn't found.")
+# --- Streamlit UI ---
+st.set_page_config(page_title="Web Content Q&A", layout="wide")
+st.title("💬 Web Content Q&A Tool (HuggingFace)")
+st.caption("Ask questions based on the content of the provided webpages and model will answer based on that.")
 
 # --- Get API Token ---
 hf_api_token = None
